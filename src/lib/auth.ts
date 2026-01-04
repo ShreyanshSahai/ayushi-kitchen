@@ -28,7 +28,7 @@ export const authOptions: NextAuthOptions = {
     },
     async session({ session, user }) {
       if (session.user) {
-        session.user.id = user.id;
+        session.user.id = Number(user.id);
         session.user.isAdmin = ADMIN_EMAILS.includes(
           user.email?.toLowerCase() ?? "",
         );
@@ -42,7 +42,7 @@ export const authOptions: NextAuthOptions = {
   events: {
     async signIn({ user }) {
       await prisma.user.update({
-        where: { id: user.id },
+        where: { id: Number(user.id) },
         data: { lastLoggedIn: new Date() },
       });
     },
