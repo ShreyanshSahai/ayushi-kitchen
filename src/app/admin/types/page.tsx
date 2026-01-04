@@ -1,0 +1,81 @@
+import { redirect } from "next/navigation";
+import { getServerSession } from "next-auth";
+import Link from "next/link";
+import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
+import { addType } from "./actions";
+import { TypeListItem } from "@/components/admin/type-list-item";
+
+export const metadata = {
+    title: "Manage Types | Ayushi Indian Kitchen",
+};
+
+export default async function ManageTypesPage() {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.isAdmin) {
+        redirect("/admin/sign-in");
+    }
+
+    const types = await prisma.foodType.findMany({
+        orderBy: { name: "asc" },
+    });
+
+    return (
+        <main className="min-h-screen bg-slate-900 bg-[radial-gradient(ellipse_80%_80%_at_50%_-20%,rgba(120,119,198,0.3),rgba(255,255,255,0))] px-4 py-10 sm:px-6 lg:px-8">
+            <div className="mx-auto w-full max-w-4xl">
+                <div className="mb-8">
+                    <Link
+                        href="/admin"
+                        className="text-base text-orange-400 hover:text-orange-300"
+                    >
+                        &larr; Back to Dashboard
+                    </Link>
+                    <h1 className="mt-2 text-4xl font-bold tracking-tight text-slate-100">
+                        Manage Food Types
+                    </h1>
+                    <p className="mt-1 text-xl text-slate-300">
+                        Add new categories or view existing ones.
+                    </p>
+                </div>
+
+                <div className="space-y-10">
+                    <div className="rounded-2xl border border-white/10 bg-slate-800/50 p-6 shadow-2xl backdrop-blur-lg">
+                        <h2 className="font-semibold text-slate-100">
+                            Add a New Type
+                        </h2>
+                        <form action={addType} className="mt-4 space-y-4">
+                            <input
+                                name="name"
+                                type="text"
+                                required
+                                className="w-full rounded-lg border border-white/10 bg-slate-700/50 px-3 py-2 text-base text-slate-200 placeholder:text-slate-500 focus:border-orange-400 focus:outline-none focus:ring-1 focus:ring-orange-400"
+                                placeholder="e.g., Curries, Appetizers"
+                            />
+                            <button
+                                type="submit"
+                                className="w-full cursor-pointer rounded-full bg-gradient-to-b from-orange-400 to-orange-600 px-4 py-2 text-base font-semibold text-white shadow-lg shadow-orange-500/30 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/40 active:shadow-inner"
+                            >
+                                Add Type
+                            </button>
+                        </form>
+                    </div>
+                    <div className="rounded-2xl border border-white/10 bg-slate-800/50 p-6 shadow-2xl backdrop-blur-lg">
+                        <h2 className="font-semibold text-slate-100">
+                            Existing Types
+                        </h2>
+                        <ul className="mt-4 space-y-2">
+                            {types.map((type) => (
+                                <TypeListItem key={type.id} type={type} />
+                            ))}
+                            {types.length === 0 && (
+                                <p className="text-base text-slate-400">
+                                    No types have been added yet.
+                                </p>
+                            )}
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+    );
+}

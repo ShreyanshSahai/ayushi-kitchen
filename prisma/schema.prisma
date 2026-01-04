@@ -1,0 +1,160 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FoodType {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  foods     FoodItem[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime?
+
+  @@map("Types")
+}
+
+model Ingredient {
+  id        Int        @id @default(autoincrement())
+  name      String     @unique
+  madeWith  MadeWith[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime?
+
+  @@map("Ingrediants")
+}
+
+model FoodItem {
+  id              Int        @id @default(autoincrement())
+  name            String
+  description     String?
+  originalPrice   Decimal    @db.Decimal(10, 2)
+  discountedPrice Decimal?   @db.Decimal(10, 2)
+  isFeatured      Boolean    @default(false)
+  isSoldOut       Boolean    @default(false)
+  isWeekendOnly   Boolean    @default(false)
+  isActive        Boolean    @default(true)
+  typeId          Int?
+  type            FoodType?  @relation(fields: [typeId], references: [id], onDelete: SetNull)
+  madeWith        MadeWith[]
+  images          Image[]
+  orderItems      OrderItem[] @relation("FoodItemToOrderItem")
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime?
+
+  @@map("FoodItems")
+}
+
+model Image {
+  id         Int      @id @default(autoincrement())
+  path       String
+  foodItemId Int
+  foodItem   FoodItem @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@map("Images")
+}
+
+model MadeWith {
+  id            Int         @id @default(autoincrement())
+  foodItemId    Int
+  ingredientId  Int
+  quantity      String
+  foodItem      FoodItem    @relation(fields: [foodItemId], references: [id], onDelete: Cascade)
+  ingredient    Ingredient  @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime?
+
+  @@unique([foodItemId, ingredientId])
+  @@map("MadeWith")
+}
+
+model User {
+  id             Int       @id @default(autoincrement())
+  name           String?
+  email          String?   @unique
+  emailVerified  DateTime?
+  image          String?
+  mobile         String    @default("")
+  passHash       String?
+  lastLoggedIn   DateTime?
+  orders         CustomerOrder[]
+  accounts       Account[]
+  sessions       Session[]
+  isAdmin        Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime?
+
+  @@map("Users")
+}
+
+model CustomerOrder {
+  id             Int         @id @default(autoincrement())
+  customerName   String
+  customerMobile String
+  customerEmail  String?
+  totalPrice     Decimal     @db.Decimal(10, 2)
+  isComplete     Boolean     @default(false)
+  userId         Int?
+  user           User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items          OrderItem[]
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime?
+
+  @@map("CustomerOrders")
+}
+
+model OrderItem {
+  id              Int           @id @default(autoincrement())
+  quantity        Int
+  price           Decimal       @db.Decimal(10, 2)
+  foodItemId      Int
+  foodItem        FoodItem      @relation("FoodItemToOrderItem", fields: [foodItemId], references: [id], onDelete: Restrict)
+  customerOrderId Int
+  customerOrder   CustomerOrder @relation(fields: [customerOrderId], references: [id], onDelete: Cascade)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime?
+
+  @@map("OrderItems")
+}
+
+// The old Order model is now replaced by CustomerOrder and OrderItem.
+// The following model is kept for reference of the change but should be removed.
+// model Order { ... }
+
+model Account {
+  id                Int      @id @default(autoincrement())
+  userId            Int
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?  @db.Text
+  access_token      String?  @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?  @db.Text
+  session_state     String?
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           Int      @id @default(autoincrement())
+  sessionToken String   @unique
+  userId       Int
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
